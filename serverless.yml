@@ -1,0 +1,43 @@
+service: postgres-backup
+custom:
+  staging:
+    versionFunctions: false
+  production:
+    versionFunctions: true
+provider:
+  name: aws
+  runtime: nodejs6.10
+  cfLogs: true
+  memorySize: 1024 
+  timeout: 10
+  role: arn:aws:iam::371305127297:role/lambda_exec_role
+  region: us-west-2
+  vpc:
+    securityGroupIds:
+      - sg-f82fb69f
+    subnetIds:
+      - subnet-8b8459fd
+      - subnet-b4e65dd0
+      - subnet-32ad4f6a
+  versionFunctions: ${self:custom:${opt:stage}:versionFunctions}
+
+package:
+  exclude:
+    #- node_modules/** # add this yourself 
+    #- '!node_modules/@types/**' # add this yourself  
+    - test/**
+
+functions:
+  backup-postgres:
+    name: ${opt:stage}-backup-postgres
+    environment:
+      NODE_ENV: ${opt:stage}
+    handler: index.handler
+    role: arn:aws:iam::371305127297:role/lambda_basic_vpc_execution 
+    events:
+      - schedule:
+          rate: rate(1 day)
+          enabled: true
+          input:
+            stageParams:
+              stage: production
